@@ -1,12 +1,12 @@
 "use client";
 
+import { useState, useContext, useTransition } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useParams, useSearchParams } from "next/navigation";
 import { PatternFormat } from "react-number-format";
 import { ConsumptionMethod } from "@prisma/client";
-
 import { createOrder } from "../../actions/create-order";
 import { isValidCpf } from "../../helpers/cpf";
 
@@ -32,7 +32,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useContext, useTransition } from "react";
 import { CartContext } from "../../contexts/cart";
 import { toast } from "sonner";
 import { LoaderIcon } from "lucide-react";
@@ -48,47 +47,46 @@ const formSchema = z.object({
 
 type FormSchema = z.infer<typeof formSchema>;
 
-interface FinishOrderDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-const FinishOrderDialog = ({ open, onOpenChange }: FinishOrderDialogProps) => {
+const FinishOrderDialog = () => {
+  const [open, setOpen] = useState(false); // Adicionado estado para controlar o Drawer
   const { products } = useContext(CartContext);
   const searchParams = useSearchParams();
-  const [isPending, startTransiction] = useTransition();
-  const { slug } = useParams<{ slug: string }>();
+  const [isPending, startTransition] = useTransition();
+  const params = useParams();
+  const slug = params?.slug as string;
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", cpf: "" },
   });
 
-  const onSubmit = async (data: FormSchema) => {
-    try {
-      const consumptionMethod = searchParams.get(
-        "consumptionMethod",
-      ) as ConsumptionMethod;
-      startTransiction(async () => {
-        await createOrder({
-          consumptionMethod,
-          customerCpf: data.cpf,
-          customerName: data.name,
-          products,
-          slug,
+  const onSubmit = (data: FormSchema) => {
+    const consumptionMethod = (searchParams.get("consumptionMethod") || "DEFAULT") as ConsumptionMethod;
+
+    startTransition(() => {
+      createOrder({
+        consumptionMethod,
+        customerCpf: data.cpf,
+        customerName: data.name,
+        products,
+        slug,
+      })
+        .then(() => {
+          setOpen(false); // Fecha o Drawer corretamente
+          toast.success("Pedido finalizado com sucesso!");
+        })
+        .catch((error) => {
+          console.error("Erro ao finalizar pedido:", error);
         });
-        onOpenChange(false);
-        toast.success("Pedido finalizado com sucesso!");
-      });
-    } catch (error) {
-      console.error("Erro ao finalizar pedido:", error);
-    }
+    });
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button variant="outline">Finalizar Pedido</Button>
+        <Button variant="outline" onClick={() => setOpen(true)}>
+          Finalizar Pedido
+        </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
@@ -125,7 +123,7 @@ const FinishOrderDialog = ({ open, onOpenChange }: FinishOrderDialogProps) => {
                         customInput={Input}
                         placeholder="Digite seu CPF..."
                         value={field.value}
-                        onValueChange={(values) => field.onChange(values.value)}
+                        onChange={(e) => field.onChange(e.target.value)}
                       />
                     </FormControl>
                     <FormMessage />

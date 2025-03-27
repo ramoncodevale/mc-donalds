@@ -9,7 +9,6 @@ import { useContext, useState } from "react";
 import Products from "./products";
 import { CartContext } from "../contexts/cart";
 import { formatCurrency } from "@/helpers/format-currency";
-import CartSheet from "../[productId]/components/cart-sheet";
 
 interface RestaurantCategoriesProps {
   restaurant: Prisma.RestaurantGetPayload<{
@@ -27,7 +26,6 @@ const RestaurantCategories = ({ restaurant }: RestaurantCategoriesProps) => {
   );
 
   const cartContext = useContext(CartContext);
-
   if (!cartContext) {
     throw new Error("CartContext deve estar dentro de um CartProvider.");
   }
@@ -36,10 +34,6 @@ const RestaurantCategories = ({ restaurant }: RestaurantCategoriesProps) => {
 
   const handleCategoryClick = (category: MenuCategory) => {
     setSelectedCategory(category);
-  };
-
-  const getCategoryButtonVariant = (category: MenuCategory) => {
-    return selectedCategory?.id === category.id ? "default" : "secondary";
   };
 
   return (
@@ -51,6 +45,7 @@ const RestaurantCategories = ({ restaurant }: RestaurantCategoriesProps) => {
             alt={restaurant.name}
             height={45}
             width={45}
+            className="rounded-full"
           />
           <div>
             <h2 className="text-lg font-semibold">{restaurant.name}</h2>
@@ -67,9 +62,9 @@ const RestaurantCategories = ({ restaurant }: RestaurantCategoriesProps) => {
         <div className="flex w-max space-x-4 p-4 pt-0">
           {restaurant.menuCategories.map((category) => (
             <Button
-              onClick={() => handleCategoryClick(category)}
               key={category.id}
-              variant={getCategoryButtonVariant(category)}
+              onClick={() => handleCategoryClick(category)}
+              variant={selectedCategory?.id === category.id ? "default" : "secondary"}
               size="sm"
               className="rounded-full"
               aria-selected={selectedCategory?.id === category.id}
